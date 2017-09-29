@@ -1,0 +1,33 @@
+beliefupdates:
+  {true}               SetNext(Agent)               {next(Agent)}
+
+goals:
+  start.
+
+pgrules:
+start <- true | {
+    send(leader, inform, iamhere(0)); //Inform the leader to add me into the ring
+    dropgoal(start);
+}
+
+pcrules:
+//Set the agent that I need to send the token
+message(A, inform, _, _, next(NextAgent)) <- true |
+  {
+    SetNext(NextAgent);
+  }
+
+//I got the last token
+message(A, inform, _, _, token(Id, 0)) <- true |
+  {
+    print("Received token final " + Id);
+    send(leader, inform, token(Id, 0));
+  }
+
+//I got a token and I'm going to forward it for the next agent
+message(A, inform, _, _, token(Id, N)) <- true |
+  { 
+    print("Received token " + Id + " / " + N);
+    B(next(NextAgent));
+    send(NextAgent, inform, token(Id, N-1));
+  }

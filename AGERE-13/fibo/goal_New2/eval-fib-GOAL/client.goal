@@ -1,0 +1,33 @@
+init module {	
+	beliefs{
+		fibs(3).
+	}
+	
+	goals{
+		start.
+	} 
+}
+	
+main module{
+	program{
+		if bel(received(Sender, simulationFinished)) then exit-module.
+		
+		if goal(start), bel(fibs(0)) then
+		   drop(start).
+
+		if goal(start), bel(fibs(K), Y is K -1, get_time(Time), N is random(8) + 1) then 
+		   send(fib_fibonaccer, ?fib(N)) +
+		   delete(fibs(K)) + 
+		   insert(fibs(Y), oldTime(Time)) +
+		   drop(start).
+		   
+		if bel(received(Sender, fib(N,X)), oldTime(OldTime), get_time(Time), Result is Time - OldTime, fibs(K)) then 
+		   delete(received(Sender, fib(N,X))) +
+		   delete(oldTime(OldTime)) +
+		   send(fib_manager, finished(N, Result, K)) +
+		   adopt(start).
+		   
+		% Empty mail box (sent).
+		forall bel(sent(Receiver, Content)) do delete(sent(Receiver, Content)).
+	}
+}

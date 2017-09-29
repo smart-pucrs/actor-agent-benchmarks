@@ -1,0 +1,37 @@
+module executeGoal(Sender, N) {
+	program {
+		if goal(currentFib(Sender, N, C, [])) then
+		  drop(currentFib(Sender, N, C, [])) +
+		  send(Sender, fib(N,C)).
+		  
+		if goal(currentFib(Sender, N, C, [H|T]), 
+		        H =< 2,
+				NewC is C + 1) then
+		  drop(currentFib(Sender, N, C, [H|T])) +
+		  adopt(currentFib(Sender, N, NewC, T)).
+		  
+		if goal(currentFib(Sender, N, C, [H|T]), 
+		        A is H-1, B is H-2,
+		        append([A], T, ResultList1),
+				append([B], ResultList1, ResultList2)) then
+		  drop(currentFib(Sender, N, C, [H|T])) +
+		  adopt(currentFib(Sender, N, C, ResultList2)).
+	}
+}
+
+
+main module{
+	program{
+		if bel(received(Sender, simulationFinished)) then exit-module.
+		
+	    if bel(received(Sender,int(fib(N)))) then 
+           delete(received(Sender,int(fib(N)))) +
+           adopt(currentFib(Sender, N, 0, [N])).
+		
+		forall goal(currentFib(Sender, N, C, L)) do 
+		  executeGoal(Sender, N).	
+		  
+		% Empty mail box (sent).
+		forall bel(sent(Receiver, Content)) do delete(sent(Receiver, Content)).
+	}
+}

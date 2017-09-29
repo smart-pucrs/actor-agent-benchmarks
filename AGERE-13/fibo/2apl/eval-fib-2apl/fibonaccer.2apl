@@ -1,0 +1,11 @@
+Beliefs:
+fib(1, 1).
+fib(2, 1).
+fib(N, X) :- N > 2, A is N-1, B is N-2, fib(A,Y), fib(B,Z), X is Y + Z.
+
+PC-rules:
+message(A, request, _, _, fib(N)) <- true |
+  {
+    B(fib(N, X));
+    send(A, inform, fib(N, X))
+  }

@@ -1,0 +1,25 @@
+beliefupdates:
+  {count(X)}     Count(Y)       {not count(X), count(Y)}
+
+beliefs:
+  count(0).
+  expected(27).
+
+pcrules:
+message(A, inform, _, _, finished(N, Result)) <- expected(Expected) |
+  {
+     [
+     print(N + Result);
+     
+     count();
+
+     if B(count(Expected)) then {
+       B(halt);
+     }
+     ]
+  }
+
+count() <- count(X) |
+  {
+    Count(X+1);
+  }

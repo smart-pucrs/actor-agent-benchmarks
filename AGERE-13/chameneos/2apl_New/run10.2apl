@@ -1,0 +1,2 @@
+beliefs:
+  run(b,[blue, red, yellow, red, yellow, blue, red, yellow, red, blue], 6000).

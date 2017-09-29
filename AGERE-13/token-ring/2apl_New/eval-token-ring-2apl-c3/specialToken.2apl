@@ -1,0 +1,26 @@
+pgrules:
+createParallelToken(Id, N) <- true | {
+  createSpecialToken(Id, N);
+  dropgoal(createParallelToken(Id, N));
+}
+
+pcrules:
+//Create special token
+createSpecialToken(Id, N) <- true |
+  {
+    work(N);
+    B(next(NextAgent));
+    send(NextAgent, inform, specialToken(Id, N));
+  }
+
+//I got a special token and I'm going to forward it for the next agent when I finish to process it
+message(A, inform, _, _, specialToken(Id, N)) <- true |
+  {
+    work(N);
+    B(next(NextAgent));
+    send(NextAgent, inform, specialToken(Id, N));
+  }
+
+//process the work of special Token
+work(0) <- true | { skip; }
+work(Ticks) <- true | { work(Ticks-1); }

@@ -1,0 +1,29 @@
+BeliefUpdates:
+  {fibs(X)}     Fibs(Y)       {not fibs(X), fibs(Y)}
+  {oldTime(X)}     SetTime(Y)       {not oldTime(X), oldTime(Y)}
+
+Beliefs:
+  fibs(3).
+  oldTime(0).
+
+Goals:
+  start
+
+PG-rules:
+start <- fibs(X) and X > 0 |
+    B(is(A, int(random(19))+1));
+    B(get_time(Time));
+    SetTime(Time);
+    Fibs(X-1);
+    send(fibonaccer, request, fib(A));
+    dropgoal(start)
+
+PC-rules:
+message(A, inform, _, _, fib(N,R)) <- true |
+  {
+    adopta(start);
+    B(get_time(Time));
+    B(oldTime(OldTime));
+    B(is(Result, Time - OldTime));
+    send(manager, inform, finished(N, Result))
+  }

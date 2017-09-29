@@ -1,0 +1,110 @@
+/*
+    This agent manages the overall execution of the experiment.
+*/
+Include: runs.2apl
+Include: comp.2apl
+Include: common.2apl
+
+Beliefs:
+  chameneos_names([]).
+  sumNM(0).
+  countNM(0).
+
+BeliefUpdates:
+  {chameneos_names(Group)}     AddChameneos(A)       {not chameneos_names(Group), chameneos_names([A|Group])}
+  {chameneos_names(Group)}     ClearChameneos()      {not chameneos_names(Group), chameneos_names([])}
+  {sumNM(Current)}       SetSumNM(A)       {not sumNM(Current), sumNM(A)}
+  {countNM(Current)}     SetCountNM(A)      {not countNM(Current), countNM(A)}
+  {true}                 SetTime(Y)        {not oldTime(X), oldTime(Y)}
+
+Goals:
+  start
+
+PG-rules:
+start <- true | //Start the execucion of the run specification (defined in the file runs.2apl)
+  B(chameneos(Chameneos));
+  B(get_time(Time));
+  SetTime(Time);
+  showComplements();
+  print(" ");
+  run();
+  dropgoal(start)
+
+PC-rules:
+showComplements() <- true | { //Print the color complements
+  showComplementsL1([blue,red,yellow], [blue,red,yellow])
+}
+showComplementsL1([], Colors2) <- true | { skip }
+showComplementsL1([CH|CT], Colors2) <- true | {
+  showComplementsL2(CH, Colors2);
+  showComplementsL1(CT, Colors2)
+}
+showComplementsL2(CH, []) <- true | { skip }
+showComplementsL2(CH, [CH2|CT2]) <- complement(CH,CH2,C) | {
+  print(CH + CH2 + C);
+  showComplementsL2(CH, CT2)
+}
+
+run() <- run(Id,Colors,N) | { //Execute the run specification
+  print(Colors);
+
+  send(broker, inform, nb_meets(N));
+  B(chameneos(Chameneos));
+
+  ClearChameneos();
+  sendColors(Colors,Chameneos);
+
+  B(chameneos_names(ChameneosNames));
+  sendGoMall(ChameneosNames, achieve)
+}
+
+sendColors([], _) <- true | { skip }
+sendColors(_, []) <- true | { print(error_no_more_chameneos) } //If this error happens, it is necessary to increase the number of agents in the file chameneos.mas and common.2apl.
+
+sendColors([HColors|TColors], [HChameneos|TChameneos]) <- true | {  
+  send(HChameneos, inform, color(HColors,HChameneos));
+  AddChameneos(HChameneos);
+
+  sendColors(TColors, TChameneos)
+}
+
+sendGoMall([], _) <- true | { skip }
+sendGoMall([A|Rest], Performative) <- true |
+  {
+    send(A, Performative, go_mall(A));
+    sendGoMall(Rest, Performative)
+  }
+
+message(broker, inform, _, _, run_finished(_)) <- chameneos_names(ChameneosNames) | { //Request the number of meetings of each chameneo
+  sendNM(ChameneosNames, request)
+}
+
+sendNM([], _) <- true | { skip }
+sendNM([A|Rest], Performative) <- true |
+  {
+    send(A, Performative, nm(A));
+    sendNM(Rest, Performative)
+  }
+
+message(A, inform, _, _, nm(LN)) <- true | { //I received the number of meetings of a chameneo
+  [
+  B(sumNM(CurrentSum));
+  B(countNM(CurrentCount));
+  SetSumNM(CurrentSum + LN);
+  SetCountNM(CurrentCount + 1);
+  checkNM()
+  ]
+}
+
+checkNM() <- countNM(CurrentCount) and chameneos_names(ChameneosNames) and length(ChameneosNames, CurrentCount) and sumNM(CurrentSum) | { //Check if I received all number of meetings of the chameneos
+  spell(CurrentSum);
+  B(listNumbers(S));
+  print(S);
+
+  B(get_time(Time));
+  B(oldTime(OldTime));
+  B(is(Result, Time - OldTime));
+  print("Finished! Time: " + Result);
+  B(halt)
+}
+checkNM() <- true | { skip }

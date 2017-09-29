@@ -1,0 +1,122 @@
+init module {	
+	beliefs{
+		countN(0).
+		times(1000). %Number of times that a token will be forward
+		tokens(4). %T = Number of tokens
+		nToSend(2). %floor(W/T), where W is the number of agents
+	}
+	
+	goals {
+		finishSimulation.
+	}
+
+	program {
+		if bel( findall(X, agent(X), L), length(L, TotalAgents) )
+		  then insert( agents(L), nrOfAgents(TotalAgents) ).
+		% Leader initiates the creation of the ring and is the first agent that
+		% needs to be connected by some other agent.
+		if bel( me(Me) ) then insert( nodeToConnectTo(Me) ).
+		% Create a ring of agents. Leader is special as it starts creating the ring.
+		forall bel( agent(Name), me(Leader), not(Leader = Name) ) do createRing(Name, Leader).
+		% Close the ring of agents; connect the leader with the last agent that still needs to be connected to.
+		% Also record start time and send the first token.
+		if bel( nodeToConnectTo(Agent), get_time(Time), times(Times), tokens(Tokens) )
+		  then insert( next(Agent) )
+		  		+ delete( nodeToConnectTo(Agent) )
+		  		+ insert( startTime(Time) )
+				+ distributeTokens(0, Tokens).
+		  
+        if true then createSpecialToken(1, 50) + createSpecialToken(2, 50). 
+    }
+	
+	actionspec {
+		work(Agent, Id) {
+			pre { specialToken(Agent, Id, N, C), NewC is C - 1}
+			post { not(specialToken(Agent, Id, N, C)), specialToken(Agent, Id, N, NewC) }
+		}
+	}
+}
+
+% Links an agent to a previous agent thus creating a ring of agents.
+module createRing(ConnectingAgent, Leader) {
+	program {
+		% Link current agent with agent that needs to be connected to.
+		if bel( nodeToConnectTo(AgentToConnectTo) )
+		  then send( ConnectingAgent, next(AgentToConnectTo) )
+		  		+ delete( nodeToConnectTo(AgentToConnectTo) )
+				+ insert( nodeToConnectTo(ConnectingAgent) ).
+	}
+}
+
+module distributeTokens(CurrentToken, RemainingTokens) {
+	program {
+		% There are no remaining tokens to distribute, exit module.
+		if bel( RemainingTokens == 0 ) then exit-module.
+
+		% 
+		if bel( agents(L), nrOfAgents(TotalAgents),
+		    RemainingTokens >= TotalAgents,
+			NewRemainingTokens is RemainingTokens - TotalAgents,
+			NewCurrentToken is CurrentToken + TotalAgents,
+			CurrentTokenId is CurrentToken + 1)
+		  then sendTokens(L, 0, CurrentTokenId) + distributeTokens(NewCurrentToken, NewRemainingTokens).
+
+		% Must have here that remaining tokens is smaller than total number of agents
+		% (given that AgentList is not empty, condition of previous rule does not hold).
+        if bel( agents(L), nrOfAgents(TotalAgents),
+			NToSend is TotalAgents // RemainingTokens - 1,
+			CurrentTokenId is CurrentToken + 1,
+			nToSend(Old))
+		  then delete( nToSend(Old) ) + insert( nToSend(NToSend) ) + sendTokens(L, 0, CurrentTokenId).
+	}
+}
+
+module sendTokens(L, N, Id){ 
+	program{
+		% In case head of list L is empty list [] exit module again.
+		if bel( L = [] ) then exit-module.
+		
+		if bel( L = [H| T], N = 0, times(Times), nToSend(Y), IdN is Id + 1)
+	      then send( H, token(Id, Times) ) + sendTokens(T, Y, IdN).
+
+		% N must be greater than 0; only send tokens to tail of the list.
+		if bel( L = [H| T], M is N - 1, IdN is Id) then sendTokens(T, M, IdN).
+	}
+}
+event module{
+	program{
+		%I received the information about the last token
+		if bel(received(Sender, token(Id,0)), startTime(OldTime), get_time(Time), Result is Time - OldTime, 
+		       countN(C), CN is C + 1, tokens(CN), next(NextAgent)) then
+		  delete(received(Sender, token(Id,0))) +
+		  send(allother,simulationFinished) +
+		  drop(finishSimulation) +
+		  finishSimulation.
+		  
+		%I received the information about some token that have finished
+		if bel(received(Sender, token(Id,0)), startTime(OldTime), get_time(Time), Result is Time - OldTime, 
+		       countN(C), CN is C + 1, tokens(Total), Total \== CN) then
+		  delete(received(Sender, token(Id,0)), countN(C)) +
+		  insert(countN(CN)). 
+		
+		%I got a token and I'm going to forward it for the next agent
+		if bel(received(Sender, token(Id,N)), N \== 0, Y is N-1, next(NextAgent)) then
+		  delete(received(Sender, token(Id,N))) +
+		  send(NextAgent, token(Id,Y)).
+		  
+		%I got a special token and I'm going to forward it for the next agent when I finish to process it
+		if bel(received(Sender, specialToken(Agent, Id, N)), next(NextAgent)) then
+	          delete(received(Sender, specialToken(Agent, Id, N))) +
+		  insert(specialToken(Agent, Id, N, N)) +
+		  adopt(specialToken(Agent, Id, N, 0)).
+	}
+}
+
+module finishSimulation {
+	program {
+		forall bel(specialToken(Agent, Id, N, 0)) do
+		  drop(specialToken(Agent, Id, N, 0)).
+	}
+}
+
+#import "common.mod2g".

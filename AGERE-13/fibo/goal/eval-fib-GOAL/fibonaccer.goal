@@ -1,0 +1,16 @@
+init module {
+	knowledge{
+		fib(1, 1).
+		fib(2, 1).
+		fib(N, X) :- N > 2, A is N-1, B is N-2, fib(A,Y), fib(B,Z), X is Y + Z.
+	}
+}
+
+event module{
+	program{ 
+	    if bel(received(Sender,int(fib(N))), fib(N,X)) then 
+		   send(Sender, fib(N,X)) + 
+		   delete(sent(Sender, fib(N,X))) +
+		   delete(received(Sender,int(fib(N)))).
+	}
+}

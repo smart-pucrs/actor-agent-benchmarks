@@ -1,0 +1,34 @@
+init module {	
+	beliefs{
+		fibs(1).
+	}
+	
+	goals{
+		start.
+	}
+}
+	
+main module{
+	program{
+		if goal(start), bel(fibs(0)) then
+		   drop(start).
+
+		if goal(start), bel(fibs(K), Y is K -1, get_time(Time), N is random(19) + 1) then 
+		   send(fibonaccer, ?fib(N)) +
+		   delete(sent(fibonaccer, int(fib(N)))) +
+		   delete(fibs(K)) + 
+		   insert(fibs(Y), oldTime(Time)) +
+		   drop(start).
+	}
+}
+
+event module {
+	program{							  
+		if bel(received(Sender, fib(N,X)), oldTime(OldTime), get_time(Time), Result is Time - OldTime, fibs(K)) then 
+		   delete(received(Sender, fib(N,X))) +
+		   delete(oldTime(OldTime)) +
+		   send(manager, finished(N, Result, K)) +
+		   delete(sent(manager, finished(N, Result, K))) + 
+		   adopt(start).
+	}	
+}

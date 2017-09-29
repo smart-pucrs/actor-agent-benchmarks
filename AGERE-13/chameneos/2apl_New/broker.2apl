@@ -1,0 +1,46 @@
+/*
+    This agent receives asks for meetings from chameneos,
+	when pairs are formed, they are informed of their partners for
+	the mutation.
+	
+	It also notifies "main" agent when a given number of meetings
+	are achieved.
+*/
+
+beliefs:
+i(0).
+
+beliefupdates:
+  {i(Current)}     SetI(A)       {not i(Current), i(A)}
+  {true}     SetFirst(A1,C1)       {firstC(A1,C1)}
+  {firstC(CurrentA1,CurrentC1)}     RemoveFirst()         {not firstC(CurrentA1,CurrentC1)}
+  {true}     RemoveFirst()         {not firstC(CurrentA1,CurrentC1)}
+  {true}     SetStop()             {stopped}
+
+pcrules:
+
+message(A, inform, _, _, nb_meets(N)) <- true | { // receives the number of meetings and start the i counter
+  SetI(N);
+}
+
+message(A, achieve, _, _, meet(C)) <- true | { [ //chameneo wants to meet
+  meet(A,C);
+] }
+
+meet(_,_) <- stopped | { skip; }
+meet(A2,C2) <- firstC(A1, C1) and i(I) and I > 0 | { //do a meeting between two chameneos
+  //print(meet_agent + A1 + and_agent + A2);
+  RemoveFirst();
+  SetI(I-1);
+  send(A1, achieve, mutate(A2,C2));
+  send(A2, achieve, mutate(A1,C1));
+}
+
+meet(A1,C1) <- not i(0) | { //the first chameneo arrived, it needs to wait the second one
+  SetFirst(A1,C1);
+}
+
+meet(_,_) <- true | { //all meetings were done. Do not need more meetings.
+  SetStop();
+  send(main,inform,run_finished(0));
+}

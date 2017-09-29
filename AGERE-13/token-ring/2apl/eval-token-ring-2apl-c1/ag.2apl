@@ -1,0 +1,30 @@
+BeliefUpdates:
+  {true}               SetNext(Agent)               {next(Agent)}
+
+Goals:
+  start
+
+PG-rules:
+start <- true |
+    send(leader, inform, iamhere(0)); //Inform the leader to add me into the ring
+    dropgoal(start)
+
+PC-rules:
+//Set the agent that I need to send the token
+message(A, inform, _, _, next(NextAgent)) <- true |
+  {
+    SetNext(NextAgent)
+  }
+
+//I got the last token
+message(A, inform, _, _, token(0)) <- true |
+  {
+    send(leader, inform, token(0))
+  }
+
+//I got a token and I'm going to forward it for the next agent
+message(A, inform, _, _, token(N)) <- true |
+  {
+    B(next(NextAgent));
+    send(NextAgent, inform, token(N-1))
+  }

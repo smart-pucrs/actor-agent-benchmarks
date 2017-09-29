@@ -1,0 +1,28 @@
+BeliefUpdates:
+  {currentFib(Id,C)}     SetFib(Id,X)       {not currentFib(Id,C), currentFib(Id,X)}
+  {true}     SetFib(Id,X)       {currentFib(Id,X)}
+  {currentFib(Id,C)}     IncFib(Id,X)       {not currentFib(Id,C), currentFib(Id,X)}
+
+
+PC-rules:
+  message(A, request, _, _, fib(N)) <- true |
+  {
+    SetFib(A, 0);
+    computeFib(A, N);
+    B(currentFib(A, X));
+    SetFib(A, 0);
+    send(A, inform, fib(N, X))
+  }
+
+computeFib(Id, N) <- N < 3 | 
+   {
+     B(currentFib(Id, C));
+     B(is(NewC, C+1));
+     IncFib(Id,NewC)
+   }
+
+computeFib(Id, N) <- N > 2 | 
+  {
+    computeFib(Id, N-1);
+    computeFib(Id, N-2)
+  }

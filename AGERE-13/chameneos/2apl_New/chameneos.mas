@@ -1,0 +1,14 @@
+<apaplmas>
+  <agent name="main" file="main.2apl"/>
+  <agent name="broker" file="broker.2apl"/>
+  <agent name="chameneo1" file="chameneo.2apl"/>
+  <agent name="chameneo2" file="chameneo.2apl"/>
+  <agent name="chameneo3" file="chameneo.2apl"/>
+  <agent name="chameneo4" file="chameneo.2apl"/>
+  <agent name="chameneo5" file="chameneo.2apl"/>
+  <agent name="chameneo6" file="chameneo.2apl"/>
+  <agent name="chameneo7" file="chameneo.2apl"/>
+  <agent name="chameneo8" file="chameneo.2apl"/>
+  <agent name="chameneo9" file="chameneo.2apl"/>
+  <agent name="chameneo10" file="chameneo.2apl"/>
+</apaplmas>

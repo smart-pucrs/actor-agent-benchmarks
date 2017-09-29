@@ -1,0 +1,12 @@
+agentfiles{
+	"fibonaccer.goal".
+	"manager.goal".
+	"client.goal".
+}
+
+launchpolicy{
+	launch fibonaccer:fibonaccer.
+	launch manager:manager.
+	launch client[3]:client.
+}
+

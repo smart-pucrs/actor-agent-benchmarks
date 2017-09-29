@@ -1,0 +1,112 @@
+init module {
+	knowledge{
+		fcount(F,N) :- findall(X,F,L), length(L,N).
+		getHeadTail([H|T], H, T).
+	}
+	
+	beliefs{
+		countN(0).
+		times(1000). %Number of times that a token will be forward
+		tokens(4). %T = Number of tokens
+		nToSend(2). %floor(W/T), where W is the number of agents
+	}
+	
+	goals {
+		finishSimulation.
+	}
+
+	program {
+        forall bel(agent(A), me(Me), A \== Me) do
+		  newAgent(A).
+		  
+        if true then createSpecialToken(1, 50).
+		if true then createSpecialToken(2, 50).
+    }
+	
+	actionspec {
+		work(Agent, Id) {
+			pre { specialToken(Agent, Id, N, C), NewC is C - 1}
+			post { not(specialToken(Agent, Id, N, C)), specialToken(Agent, Id, N, NewC) }
+		}
+	}
+}
+
+module sendTokens(L,N,Id){ 
+	program{
+		if bel(getHeadTail(L, [], T)) then exit-module.
+		if bel(getHeadTail(L, H, T), times(Times), nToSend(Y), 
+		       IdN is Id + 1, N == 0) then 
+		  send(H, token(IdN, Times)) +
+		  delete(sent(H, token(IdN, Times))) +
+		  sendTokens(T,Y,IdN).
+		if bel(getHeadTail(L, H, T), M is N - 1, IdN is Id) then 
+		  sendTokens(T,M,IdN).
+	}
+}
+
+module newAgent(Agent) {
+    program {
+		%The current agent is the last one, I can send the token
+	    if bel(countN(Y), fcount(agent(_),N), Temp is N -2, Temp == Y,
+		       firstOne(FirstAgent), lastOne(OldAgent), times(Times), get_time(Time), 
+			   findall(X,agent(X),L)) then
+		  delete(lastOne(OldAgent)) + 
+		  send(Agent, next(OldAgent)) +
+		  delete(sent(Agent, next(OldAgent))) +
+		  send(FirstAgent, next(leader)) +
+		  delete(sent(FirstAgent, next(leader))) +
+		  insert(next(Agent), oldTime(Time)) +
+		  delete(countN(Y)) +
+		  insert(countN(0)) +
+		  sendTokens(L,0,0).
+		  
+		%The current agent is the first one
+		if bel(not(firstOne(_)), not(lastOne(_)), countN(Y), K is Y + 1) then
+		  delete(countN(Y)) +
+		  insert(firstOne(Agent), lastOne(Agent), countN(K)).
+		  
+		%The current agent is a middle agent
+		if bel(lastOne(OldAgent), countN(Y), K is Y + 1) then
+		  delete(lastOne(OldAgent), countN(Y)) +
+		  insert(lastOne(Agent), countN(K)) +
+		  send(Agent, next(OldAgent)) +
+		  delete(sent(Agent, next(OldAgent))).
+	}
+} 
+
+event module{
+	program{
+		%I received the information about the last token
+		if bel(received(Sender, token(Id,0)), oldTime(OldTime), get_time(Time), Result is Time - OldTime, 
+		       countN(C), CN is C + 1, tokens(CN), next(NextAgent)) then
+		  delete(received(Sender, token(Id,0))) +
+		  send(NextAgent, simulationFinished) +
+		  delete(sent(NextAgent, simulationFinished)) +
+		  insert(simulationFinished) +
+		  drop(finishSimulation) +
+		  finishSimulation.
+		  
+		%I received the information about some token that have finished
+		if bel(received(Sender, token(Id,0)), oldTime(OldTime), get_time(Time), Result is Time - OldTime, 
+		       countN(C), CN is C + 1, tokens(Total), Total \== CN) then
+		  delete(received(Sender, token(Id,0)), countN(C)) +
+		  insert(countN(CN)). 
+		
+		%I got a token and I'm going to forward it for the next agent
+		if bel(received(Sender, token(Id,N)), N \== 0, Y is N-1, next(NextAgent)) then
+		  delete(received(Sender, token(Id,N))) +
+		  send(NextAgent, token(Id,Y)) +
+		  delete(sent(NextAgent, token(Id,Y))).
+		  
+		if bel(received(Sender, specialToken(Agent, Id, N)), simulationFinished) then
+		  delete(received(Sender, specialToken(Agent, Id, N))).
+		  
+		%I got a special token and I'm going to forward it for the next agent when I finish to process it
+		if bel(received(Sender, specialToken(Agent, Id, N)), next(NextAgent)) then
+	          delete(received(Sender, specialToken(Agent, Id, N))) +
+		  insert(specialToken(Agent, Id, N, N)) +
+		  adopt(specialToken(Agent, Id, N, 0)).
+	}
+}
+
+#import "common.mod2g".

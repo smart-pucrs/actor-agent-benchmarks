@@ -1,0 +1,13 @@
+<apaplmas>
+  <agent name="fibonaccer" file="fibonaccer.2apl"/>
+  <agent name="manager" file="manager.2apl"/>
+<agent name="client9" file="client.2apl"/>
+<agent name="client8" file="client.2apl"/>
+<agent name="client7" file="client.2apl"/>
+<agent name="client6" file="client.2apl"/>
+<agent name="client5" file="client.2apl"/>
+<agent name="client4" file="client.2apl"/>
+<agent name="client3" file="client.2apl"/>
+<agent name="client2" file="client.2apl"/>
+<agent name="client1" file="client.2apl"/>
+</apaplmas>

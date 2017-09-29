@@ -1,0 +1,63 @@
+init module {
+	knowledge{
+		fcount(F,N) :- findall(X,F,L), length(L,N).
+	}
+	
+	beliefs{
+		countN(0).
+		times(2333).
+	}
+	
+	goals {
+		finishSimulation.
+	}
+
+	program {
+        forall bel(agent(A), me(Me), A \== Me) do
+		  newAgent(A).
+    }
+}
+
+
+module newAgent(Agent) {
+    program {
+		%The current agent is the last one, I can send the token
+	    if bel(countN(Y), fcount(agent(_),N), Temp is N -2, Temp == Y,
+		       firstOne(FirstAgent), lastOne(OldAgent), times(Times), get_time(Time)) then
+		  delete(lastOne(OldAgent)) + 
+		  send(Agent, next(OldAgent)) +
+		  delete(sent(Agent, next(OldAgent))) +
+		  send(FirstAgent, next(leader)) +
+		  delete(sent(FirstAgent, next(leader))) +
+		  insert(next(Agent), oldTime(Time)) +
+		  send(FirstAgent, token(Times)) +
+		  delete(sent(FirstAgent, token(Times))).
+		  
+		%The current agent is the first one
+		if bel(not(firstOne(_)), not(lastOne(_)), countN(Y), K is Y + 1) then
+		  delete(countN(Y)) +
+		  insert(firstOne(Agent), lastOne(Agent), countN(K)).
+		  
+		%The current agent is a middle agent
+		if bel(lastOne(OldAgent), countN(Y), K is Y + 1) then
+		  delete(lastOne(OldAgent), countN(Y)) +
+		  insert(lastOne(Agent), countN(K)) +
+		  send(Agent, next(OldAgent)) +
+		  delete(sent(Agent, next(OldAgent))).
+	}
+} 
+
+event module{
+	program{
+		%I received the information about the last token
+		if bel(received(Sender, token(0)), oldTime(OldTime), get_time(Time), Result is Time - OldTime) then
+		  delete(received(Sender, token(0))) +
+		  drop(finishSimulation). 
+		
+		%I got a token and I'm going to forward it for the next agent
+		if bel(received(Sender, token(N)), N \== 0, Y is N-1, next(NextAgent)) then
+		  delete(received(Sender, token(N))) +
+		  send(NextAgent, token(Y)) +
+		  delete(sent(NextAgent, token(Y))).
+	}
+}

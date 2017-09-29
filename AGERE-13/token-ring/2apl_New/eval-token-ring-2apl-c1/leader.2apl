@@ -1,0 +1,63 @@
+beliefupdates:
+  {count(X)}           Count(Y)          {not count(X), count(Y)}
+  {true}               SetFirst(Agent)   {first(Agent)}
+  {last(OldAgent)}     SetLast(Agent)    {not last(OldAgent), last(Agent)}
+  {true}               SetLast(Agent)    {last(Agent)}
+  {true}               SetTime(Y)        {not oldTime(X), oldTime(Y)}
+  {true}               SetNext(Agent)    {next(Agent)}
+
+beliefs:
+  count(0).
+  max(9).
+  times(13).
+
+pcrules:
+//Received a message from an agent
+message(A, inform, _, _, iamhere(_)) <- true |
+  { [
+    newAgent(A);
+  ] }
+
+//The current agent is the last one, I can send the token
+newAgent(Agent) <- max(Max) and count(Max) and last(OldAgent) and first(FirstAgent) and times(Times) |
+  {
+    SetLast(Agent);
+    send(Agent, inform, next(OldAgent));
+    SetNext(Agent); //Set my next agent
+    send(FirstAgent, inform, next(leader));
+    B(get_time(Time));
+    SetTime(Time);
+    send(FirstAgent, inform, token(Times));
+  }
+
+//The current agent is the first one
+newAgent(Agent) <- count(X) and not first(_) and not last(_) |
+  {
+    Count(X+1);
+    SetFirst(Agent);
+    SetLast(Agent);
+  }
+
+//The current agent is a middle agent
+newAgent(Agent) <- count(X) and last(OldAgent) |
+  {
+    Count(X+1);
+    SetLast(Agent);
+    send(Agent, inform, next(OldAgent));
+  }
+
+//I received the information about the last token
+message(A, inform, _, _, token(0)) <- true |
+  {
+    B(get_time(Time));
+    B(oldTime(OldTime));
+    B(is(Result, Time - OldTime));
+    B(halt);
+  }
+
+//I got a token and I'm going to forward it for the next agent
+message(A, inform, _, _, token(N)) <- true |
+  {
+    B(next(NextAgent));
+    send(NextAgent, inform, token(N-1));
+  }

@@ -1,0 +1,5 @@
+//Replace run10.2pl by the desired file with the run specification
+Include: run10.2apl
+
+BeliefUpdates:
+  {true}               DeleteRun(A,B,C)               {not round(A,B,C)}

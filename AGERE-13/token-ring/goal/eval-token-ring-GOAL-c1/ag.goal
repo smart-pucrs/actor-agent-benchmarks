@@ -1,0 +1,20 @@
+event module{
+	program{
+		%Set the agent that I need to send the token
+		if bel(received(Sender, next(Agent))) then 
+		  delete(received(Sender, next(Agent))) +
+		  insert(next(Agent)).
+		
+		%I got the last token
+		if bel(received(Sender, token(0))) then
+		  delete(received(Sender, token(0))) +
+		  send(leader, token(0)) +
+		  delete(sent(leader, token(0))).
+		
+		%I got a token and I'm going to forward it for the next agent
+		if bel(received(Sender, token(N)), Y is N-1, next(NextAgent)) then
+		  delete(received(Sender, token(N))) +
+		  send(NextAgent, token(Y)) +
+		  delete(sent(NextAgent, token(Y))).
+	}
+}

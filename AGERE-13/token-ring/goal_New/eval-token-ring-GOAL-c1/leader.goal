@@ -1,0 +1,53 @@
+init module {
+	knowledge{
+		% return seconds with two decimals (and not more to avoid suggesting ridiculous precision).
+		timeUsed(Seconds) :- startTime(StartTime), get_time(Now), Duration is Now-StartTime,
+			stamp_date_time(Duration, date(_, _, D, H, Mn, S, _, _, _), 'UTC'), Seconds is round((H*3600+Mn*60+S)*100)/100.
+	}
+	beliefs{
+		% Number of times that a token will be forwarded.
+		times(1000).
+	}
+	program {		
+		% Leader initiates the creation of the ring and is the first agent that
+		% needs to be connected by some other agent.
+		if bel( me(Me) ) then insert( nodeToConnectTo(Me) ).
+		% Create a ring of agents. Leader is special as it starts creating the ring.
+		forall bel( agent(Name), me(Leader), not(Leader = Name) ) do createRing(Name).
+		% Close the ring of agents; connect the leader with the last agent that still needs to be connected to.
+		% Also record start time and send the first token.
+		if bel( nodeToConnectTo(Agent), get_time(Time), times(Times) )
+		  then insert( next(Agent) )
+		  		+ delete( nodeToConnectTo(Agent) )
+		  		+ insert( startTime(Time) )
+				+ send( Agent, token(1, Times) ).
+    }
+}
+
+% Links an agent to a previous agent thus creating a ring of agents.
+module createRing(ConnectingAgent) {
+	program {
+		% Link current agent with agent that needs to be connected to.
+		if bel( nodeToConnectTo(AgentToConnectTo) )
+		  then send( ConnectingAgent, next(AgentToConnectTo) )
+		  		+ delete( nodeToConnectTo(AgentToConnectTo) )
+				+ insert( nodeToConnectTo(ConnectingAgent) ).
+	}
+}
+
+main module {
+	program {
+		% Check if we received a token that needs to be forwarded to the next agent.
+		if bel( received(Sender, token(Id, N)), N \= 0, Y is N-1, next(NextAgent) )
+		  then send( NextAgent, token(Id, Y) ) + delete( received(Sender, token(Id, N)) ).
+
+		% Token has been forwarded specified number of times (see initial beliefs); record time we used.
+		if bel( received(Sender, token(Id,0)), timeUsed(Duration))
+		  then delete( received(Sender, token(Id, 0)) ) +
+		       send(allother,simulationFinished) +
+			   exit-module.
+			   
+		% Empty mail box (sent).
+		forall bel(sent(Receiver, Content)) do delete(sent(Receiver, Content)).
+	}
+}

@@ -1,0 +1,20 @@
+init module {
+	knowledge{
+		fib(1, 1).
+		fib(2, 1).
+		fib(N, X) :- N > 2, A is N-1, B is N-2, fib(A,Y), fib(B,Z), X is Y + Z.
+	}
+}
+
+main module{
+	program{ 
+		if bel(received(Sender, simulationFinished)) then exit-module.
+		
+	    if bel(received(Sender,int(fib(N))), fib(N,X)) then 
+		   send(Sender, fib(N,X)) + 
+		   delete(received(Sender,int(fib(N)))).
+		   
+		% Empty mail box (sent).
+		forall bel(sent(Receiver, Content)) do delete(sent(Receiver, Content)).
+	}
+}

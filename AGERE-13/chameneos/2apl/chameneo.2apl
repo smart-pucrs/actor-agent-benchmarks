@@ -1,0 +1,56 @@
+/*
+    The chameneo agent asks the broker for a meeting and them, when a pair is found,
+	mutates its color based on the color of the pair. 
+	
+	The belief color/1 represents the current color of the chameneo. It is initially
+	informed by main and then changed each mutation.
+*/
+
+Include: comp.2apl
+Include: common.2apl
+
+Beliefs:
+nb_meetings(0).
+nb_meetings_same_color(0).
+
+BeliefUpdates:
+  {color(Current)}     SetColor(A)       {not color(Current), color(A)}
+  {true}               SetColor(A)       {color(A)}
+  {nb_meetings(Current)}       SetNbMeetings(A)       {not nb_meetings(Current), nb_meetings(A)}
+  {nb_meetings_same_color(Current)}       SetNbMeetingsSameColor(A)       {not nb_meetings_same_color(Current), nb_meetings_same_color(A)}
+  {true}               SetName(A)       {myName(A)}
+
+PC-rules:
+message(A, inform, _, _, color(Color, Name)) <- true | {  //This will be my color and my name
+  SetName(Name);
+  SetColor(Color)
+}
+
+message(A, achieve, _, _, go_mall(_)) <- color(C) | { //I am going to the mall
+  goMall()
+}
+
+message(A, request, _, _, nm(_)) <- nb_meetings(N) and nb_meetings_same_color(NS) | { //The run execution is over
+  spell(NS);
+  B(listNumbers(NSS));
+  print(N + NSS);
+  send(A,inform,nm(N))
+}
+
+checkSame(A) <- myName(A) and nb_meetings_same_color(N) | { //Check if I met myself
+  SetNbMeetingsSameColor(N+1)
+}
+checkSame(_) <- true | { skip }
+
+message(_, achieve, _, _, mutate(A,C2)) <- color(C1) and complement(C1,C2,C) and nb_meetings(N) | { //I need to mutate because of other chameneo
+  //print(changing_color_from + C1 + to + C + because_of_agent + A + with + C2);
+  
+  SetNbMeetings(N+1);
+  SetColor(C);
+  checkSame(A);
+  goMall()
+}
+
+goMall() <- color(C) | {
+  send(broker,achieve,meet(C))
+}

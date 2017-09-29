@@ -1,0 +1,26 @@
+beliefs:
+complement(blue,   red,    yellow).
+complement(blue,   yellow, red).
+complement(red,    blue,   yellow).
+complement(red,    yellow, blue).
+complement(yellow, blue,   red).
+complement(yellow, red,    blue).
+complement(C, C, C).
+listNumbers([]).
+
+beliefupdates:
+  {listNumbers(Number)}     AddNumber(A)              {not listNumbers(Number), listNumbers([A|Number])}
+
+pcrules:
+spell(N) <- N < 10 | {
+  B(is(N1,N+1));
+  B(nth0(N1,[zero, one, two, three, four, five, six, seven, eight, nine],R));
+  AddNumber(R);
+}
+
+spell(N) <- N >= 10 | {
+  B(is(T, floor((N / 10))));
+  B(is(H, rem(N,10)));
+  spell(H);
+  spell(T);
+}

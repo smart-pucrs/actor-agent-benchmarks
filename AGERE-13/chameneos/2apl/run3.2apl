@@ -1,0 +1,2 @@
+Beliefs:
+  run(a,[blue, red, yellow], 600).

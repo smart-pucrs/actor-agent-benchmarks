@@ -1,0 +1,52 @@
+init module {
+	program {
+        if true then createSpecialToken(1, 50).
+		if true then createSpecialToken(2, 50).
+    }
+	
+	actionspec {
+		work(Agent, Id) {
+			pre { specialToken(Agent, Id, N, C), NewC is C - 1}
+			post { not(specialToken(Agent, Id, N, C)), specialToken(Agent, Id, N, NewC) }
+		}
+	}
+}
+
+event module{
+	program{
+		%Set the agent that I need to send the token
+		if bel(received(Sender, next(Agent))) then 
+		  delete(received(Sender, next(Agent))) +
+		  insert(next(Agent)).
+		
+		%I got the last token
+		if bel(received(Sender, token(Id,0)), string_concat('Received token final ', Id, Str)) then
+		  delete(received(Sender, token(Id,0))) +
+		  send(leader, token(Id,0)) +
+		  delete(sent(leader, token(Id,0))).
+		
+		%I got a token and I'm going to forward it for the next agent
+		if bel(received(Sender, token(Id,N)), N \== 0, Y is N-1, next(NextAgent)) then
+		  delete(received(Sender, token(Id,N))) +
+		  send(NextAgent, token(Id,Y)) +
+		  delete(sent(NextAgent, token(Id,Y))).
+		  
+		if bel(received(Sender, specialToken(Agent, Id, N)), simulationFinished) then
+		  delete(received(Sender, specialToken(Agent, Id, N))).
+		  
+		%I got a special token and I'm going to forward it for the next agent when I finish to process it
+		if bel(received(Sender, specialToken(Agent, Id, N)), not(simulationFinished), next(NextAgent)) then
+   	          delete(received(Sender, specialToken(Agent, Id, N))) +
+		  insert(specialToken(Agent, Id, N, N)) +
+		  adopt(specialToken(Agent, Id, N, 0)).
+		  
+		if bel(received(Sender, simulationFinished), next(NextAgent)) then
+		  delete(received(Sender, simulationFinished)) +
+		  insert(simulationFinished) +
+		  send(NextAgent, simulationFinished) +
+		  delete(sent(NextAgent, simulationFinished)) +
+		  finishSimulation.
+	}
+}
+
+#import "common.mod2g".

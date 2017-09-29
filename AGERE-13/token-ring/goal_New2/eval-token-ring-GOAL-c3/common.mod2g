@@ -1,0 +1,26 @@
+% Create special token
+module createSpecialToken(Id,N) {
+	program {
+		if bel(me(Me)) then
+		  insert(specialToken(Me, Id, N, N)) +
+		  adopt(specialToken(Me, Id, N, 0)).
+	}
+}
+ 
+
+main module[exit=nogoals] {
+	% Process the work of special Token
+	program{
+		if bel(received(Sender, simulationFinished)) then exit-module.
+		
+		forall bel(specialToken(Agent, Id, N, 0), next(NextAgent)) do 
+		  delete(specialToken(Agent, Id, N, 0)) +
+		  send(NextAgent, specialToken(Agent, Id, N)).
+		
+		forall goal(specialToken(Agent, Id, _, _)) do 
+		  work(Agent, Id).
+		  
+		% Empty mail box (sent).
+		forall bel(sent(Receiver, Content)) do delete(sent(Receiver, Content)).
+	}
+}

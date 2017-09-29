@@ -1,0 +1,5 @@
+//Replace run10.2pl by the desired file with the run specification
+include: run10.2apl;
+
+beliefupdates:
+  {true}               DeleteRun(A,B,C)               {not round(A,B,C)}

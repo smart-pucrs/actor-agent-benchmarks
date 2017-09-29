@@ -1,0 +1,110 @@
+BeliefUpdates:
+  {count(X)}           Count(Y)          {not count(X), count(Y)}
+  {true}               SetFirst(Agent)   {first(Agent)}
+  {last(OldAgent)}     SetLast(Agent)    {not last(OldAgent), last(Agent)}
+  {true}               SetLast(Agent)    {last(Agent)}
+  {true}               SetTime(Y)        {not oldTime(X), oldTime(Y)}
+  {true}               SetNext(Agent)    {next(Agent)}
+  {agents(Agents)}     AddAgent(A)       {not agents(Agents), agents([A|Agents])}
+
+Beliefs:
+  count(0).
+  max(498).    //W = Number of the agents (except leader) -1
+  times(500000). //Number of times that I token will be forward
+  tokens(750). //T = Number of tokens
+  agents([]).
+
+PG-rules:
+sendTokens <- agents(Agents) and tokens(Tokens) and max(Max) |
+  Count(0);
+  B(is(NAgents, Max + 2));
+  distributeTokens(1, Tokens, NAgents);
+  dropgoal(sendTokens)
+
+PC-rules:
+//Received a message from an agent
+message(A, inform, _, _, iamhere(_)) <- true |
+  { [
+    newAgent(A)
+  ] }
+
+//The current agent is the last one, I can send the token
+newAgent(Agent) <- max(Max) and count(Max) and last(OldAgent) and first(FirstAgent) |
+  {
+    AddAgent(Agent);
+    AddAgent(leader);
+    SetLast(Agent);
+    send(Agent, inform, next(OldAgent));
+    SetNext(Agent); //Set my next agent
+    send(FirstAgent, inform, next(leader));
+    B(get_time(Time));
+    SetTime(Time);
+
+    adopta(sendTokens)
+  }
+
+//The current agent is the first one
+newAgent(Agent) <- count(X) and not first(_) and not last(_) |
+  {
+    Count(X+1);
+    AddAgent(Agent);
+    SetFirst(Agent);
+    SetLast(Agent)
+  }
+
+//The current agent is a middle agent
+newAgent(Agent) <- count(X) and last(OldAgent) |
+  {
+    Count(X+1);
+    AddAgent(Agent);
+    SetLast(Agent);
+    send(Agent, inform, next(OldAgent))
+  }
+
+//I received the information about the last token
+message(A, inform, _, _, token(Id, 0)) <- tokens(N) |
+  {
+    B(get_time(Time));
+    B(oldTime(OldTime));
+    B(is(Result, Time - OldTime));
+    [
+      B(count(C));
+      if B(N = (C+1)) then {
+        B(halt)
+      } else {
+        Count(C+1)
+      }
+    ]
+  }
+
+//I got a token and I'm going to forward it for the next agent
+message(A, inform, _, _, token(Id, N)) <- true |
+  {
+    B(next(NextAgent));
+    send(NextAgent, inform, token(Id, N-1))
+  }
+
+distributeTokens(CurrentToken, RemainingTokens, TotalAgents) <- agents(Agents) and RemainingTokens >= TotalAgents | {
+    sendTokens(Agents, 0, CurrentToken, 0);
+    B(is(NewRemainingTokens, RemainingTokens - TotalAgents));
+    B(is(NewCurrentToken, CurrentToken + TotalAgents));
+    distributeTokens(NewCurrentToken, NewRemainingTokens, TotalAgents)
+}
+distributeTokens(CurrentToken, 0, TotalAgents) <- true | { skip }
+distributeTokens(CurrentToken, RemainingTokens, TotalAgents) <- agents(Agents) and RemainingTokens < TotalAgents | {
+    B(is(NToSend, floor((TotalAgents / RemainingTokens)) - 1));
+    sendTokens(Agents, 0, CurrentToken, NToSend)
+}
+
+//Send all tokens to the agents
+sendTokens([], _, _, _) <- true | { skip }
+sendTokens([A|Rest], 0, Id, NToSend) <- times(Times) |
+  {
+     send(A, inform, token(Id, Times));
+     sendTokens(Rest, NToSend, Id+1, NToSend)
+  }
+
+sendTokens([A|Rest], N, Id, NToSend) <- true |
+  {
+     sendTokens(Rest, N-1, Id, NToSend)
+  }

@@ -1,0 +1,13 @@
+<apaplmas>
+<agent name="leader" file="leader.2apl"/>
+<agent name="ag10" file="ag.2apl"/>
+<agent name="ag9" file="ag.2apl"/>
+<agent name="ag8" file="ag.2apl"/>
+<agent name="ag7" file="ag.2apl"/>
+<agent name="ag6" file="ag.2apl"/>
+<agent name="ag5" file="ag.2apl"/>
+<agent name="ag4" file="ag.2apl"/>
+<agent name="ag3" file="ag.2apl"/>
+<agent name="ag2" file="ag.2apl"/>
+<agent name="ag1" file="ag.2apl"/>
+</apaplmas>

@@ -1,0 +1,47 @@
+init module {
+	knowledge {
+	  createFile(File) :- 
+		open(File, write, Stream), 
+		close(Stream).
+	  
+	  storeData(File, Fib, Time) :-
+		open(File, append, Stream),
+		write(Stream, (Fib, Time)),
+		nl(Stream),
+		close(Stream).
+	}
+	
+	beliefs{
+	  countN(0).
+	  expected(27).
+	}
+	
+	program {
+	  if bel(createFile('output.txt')) then
+	    insert(file('output.txt')).
+	}
+}
+
+module storeData {
+	program {
+		forall bel(fib(Sender, N, Result, K), Result2 is Result * 1000, file(File), storeData(File, N, Result2)) do
+		  delete(fib(Sender, N, Result, K)).
+	}
+}
+	
+main module{
+	program{
+		if bel(received(Sender, finished(N, Result, K)), countN(Z), Y is Z + 1, expected(Y)) then
+		  insert(fib(Sender, N, Result, K)) +
+		  storeData +
+		  delete(received(Sender, finished(N, Result, K))) +
+		  send(allother,simulationFinished) +
+		  exit-module.  
+		
+		if bel(received(Sender, finished(N, Result, K)), countN(Z), Y is Z + 1) then
+		  insert(fib(Sender, N, Result, K)) +
+		  delete(countN(Z)) +
+		  insert(countN(Y)) +
+		  delete(received(Sender, finished(N, Result, K))).
+	}
+}
